@@ -29,42 +29,9 @@
 
         <script>
             const socket = new WebSocket("wss://" + location.host);
-            let peer, uid;
-
-            socket.onopen = () => {
-                peer = new Peer();
-                peer.on("open", (id) => {
-                    uid = id;
-                    socket.send(JSON.stringify({ myid: id }));
-                    console.log(id);
-                });
-                peer.on("connection", (conn) => {
-                    conn.on("data", function (data) {
-                        console.log("recvd: " + data);
-                        console.log(conn);
-                    });
-                });
-            };
-
-            socket.onmessage = (msg) => {
-                data = JSON.parse(msg.data);
-
-                if (data.myid) {
-                    console.log("got myid ", data.myid);
-                } else
-                if (data.youid) {
-                    console.log("got youid");
-                    var conn = peer.connect(data.youid);
-                    conn.on("open", function () {
-                        console.log("connected to remote");
-                        conn.send("hi!");
-                    });
-                }
-            };
-
             const myv = document.getElementById("myv");
             const youv = document.getElementById("youv");
-            let mystr;
+            let mystr, peer, uid;
 
             function startV() {
                 navigator.getUserMedia(
@@ -85,13 +52,54 @@
                     }
                 );
             }
-            startV()
+            startV();
 
             function stopV() {
                 mystr.getTracks().forEach((track) => {
                     track.stop();
                 });
             }
+
+            socket.onopen = () => {
+                peer = new Peer();
+                peer.on("open", (id) => {
+                    uid = id;
+                    socket.send(JSON.stringify({ myid: id }));
+                    console.log(id);
+                });
+                peer.on("connection", (conn) => {
+                    conn.on("data", function (data) {
+                        console.log("recvd: " + data);
+                        console.log(conn);
+                    });
+                });
+                peer.on("call", function (call) {
+                    call.answer(mystr);
+                    call.on("stream", function (remoteStream) {
+                        youv.srcObject = remoteStream;
+                    });
+                });
+            };
+
+            socket.onmessage = (msg) => {
+                data = JSON.parse(msg.data);
+
+                if (data.myid) {
+                    console.log("got myid ", data.myid);
+                } else if (data.youid) {
+                    console.log("got youid");
+                    var conn = peer.connect(data.youid);
+                    conn.on("open", function () {
+                        console.log("connected to remote");
+                        conn.send("hi!");
+                    });
+
+                    var call = peer.call(data.youid, mystr);
+                    call.on("stream", function (remoteStream) {
+                        youv.srcObject = remoteStream;
+                    });
+                }
+            };
         </script>
     </body>
 </html>
