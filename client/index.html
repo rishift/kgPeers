@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>KTV</title>
+        <link rel="shortcut icon" href="data:" type="image/x-icon" />
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                background-color: black;
+                color: beige;
+            }
+            html,
+            body {
+                height: 100%;
+            }
+            video {
+                width: 500px;
+            }
+        </style>
+        <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+    </head>
+    <body>
+        <video autoplay id="myv"></video>
+        <video autoplay id="youv"></video>
+
+        <script>
+            const socket = new WebSocket("ws://" + location.host);
+            let peer, uid;
+
+            socket.onopen = () => {
+                peer = new Peer();
+                peer.on("open", (id) => {
+                    uid = id;
+                    socket.send(JSON.stringify({ myid: id }));
+                    console.log(id);
+                });
+                peer.on("connection", (conn) => {
+                    conn.on("data", function (data) {
+                        console.log("recvd: " + data);
+                        console.log(conn);
+                    });
+                });
+            };
+
+            socket.onmessage = (msg) => {
+                data = JSON.parse(msg.data);
+
+                if (data.myid) {
+                    console.log("got myid ", data.myid);
+                } else
+                if (data.youid) {
+                    console.log("got youid");
+                    var conn = peer.connect(data.youid);
+                    conn.on("open", function () {
+                        console.log("connected to remote");
+                        conn.send("hi!");
+                    });
+                }
+            };
+
+            const myv = document.getElementById("myv");
+            const youv = document.getElementById("youv");
+            let mystr;
+
+            function startV() {
+                navigator.getUserMedia(
+                    {
+                        video: {
+                            mandatory: {
+                                minWidth: 1280,
+                            },
+                        },
+                        audio: true,
+                    },
+                    (stream) => {
+                        mystr = stream;
+                        myv.srcObject = mystr;
+                    },
+                    (error) => {
+                        console.log(error);
+                    }
+                );
+            }
+
+            function stopV() {
+                mystr.getTracks().forEach((track) => {
+                    track.stop();
+                });
+            }
+        </script>
+    </body>
+</html>
