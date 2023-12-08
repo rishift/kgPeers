@@ -28,7 +28,7 @@
         <video autoplay id="youv"></video>
 
         <script>
-            const socket = new WebSocket("ws://" + location.host);
+            const socket = new WebSocket("wss://" + location.host);
             let peer, uid;
 
             socket.onopen = () => {
