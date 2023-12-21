@@ -2,7 +2,14 @@ const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 
 const socket = new WebSocket("wss://" + location.host);
-const peerConn = new RTCPeerConnection();
+const peerConn = new RTCPeerConnection({
+    iceServers: [
+      {
+        urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+      },
+    ],
+    iceCandidatePoolSize: 10,
+  });
 
 let localStream;
 let remoteStream;
